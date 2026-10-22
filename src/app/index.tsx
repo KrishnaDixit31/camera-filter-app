@@ -1,98 +1,113 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCameraDevice, useCameraPermission } from "react-native-vision-camera";
+import { SkiaCamera } from "react-native-vision-camera-skia";
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+export default function Index() {
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const device = useCameraDevice("back");
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
+  useEffect(() => {
+    if (!hasPermission) {
+      requestPermission();
+    }
+  }, [hasPermission, requestPermission]);
+
+  if (!hasPermission) {
     return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
+      <View style={styles.container}>
+        <Text style={styles.text}>Camera permission is required.</Text>
+        <TouchableOpacity style={styles.button} onPress={requestPermission}>
+          <Text style={styles.buttonText}>Grant Permission</Text>
+        </TouchableOpacity>
+      </View>
     );
   }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+
+  if (device == null) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.text}>No back camera device found.</Text>
+        <Text style={styles.subtext}>
+          If you are running on an Android Emulator, make sure the camera is enabled in Emulator Settings (Camera {">"} Back {">"} Emulated or Webcam0).
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+    <View style={styles.container}>
+      {cameraError ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Camera Error: {cameraError}</Text>
+        </View>
+      ) : null}
+      <SkiaCamera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={hasPermission}
+        pixelFormat="yuv"
+        onError={(error) => {
+          console.error("Camera runtime error:", error);
+          setCameraError(error.message);
+        }}
+        onFrame={(frame, render) => {
+          "worklet";
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+          render(({ frameTexture, canvas }) => {
+            canvas.drawImage(frameTexture, 0, 0);
+          });
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+          frame.dispose();
+        }}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#000",
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+  text: {
+    color: "#fff",
+    fontSize: 16,
+    marginBottom: 16,
+    textAlign: "center",
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+  subtext: {
+    color: "#aaa",
+    fontSize: 13,
+    textAlign: "center",
+    paddingHorizontal: 24,
+    marginTop: 8,
   },
-  title: {
-    textAlign: 'center',
+  button: {
+    backgroundColor: "#208AEF",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
-  code: {
-    textTransform: 'uppercase',
+  buttonText: {
+    color: "#fff",
+    fontWeight: "600",
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  errorContainer: {
+    position: "absolute",
+    top: 50,
+    zIndex: 10,
+    backgroundColor: "rgba(255, 0, 0, 0.8)",
+    padding: 10,
+    borderRadius: 6,
+    marginHorizontal: 16,
+  },
+  errorText: {
+    color: "#fff",
+    fontSize: 13,
+    textAlign: "center",
   },
 });
