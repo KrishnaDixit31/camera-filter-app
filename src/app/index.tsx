@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { router, useIsFocused } from "expo-router";
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -17,6 +18,11 @@ import { SkiaCamera } from "react-native-vision-camera-skia";
 import { theme } from "../constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SwitchCamera } from "lucide-react-native";
+import { Skia } from "@shopify/react-native-skia";
+import FILTERS from "../constants/filters";
+import ApplyFilter from "../utils/applyFilter";
+
+type FilterName = keyof typeof FILTERS;
 
 export default function CameraScreen() {
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -29,12 +35,19 @@ export default function CameraScreen() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
+  const [filter, setFilter] = useState<FilterName>("none");
+  const paint = useMemo(() => Skia.Paint(), []);
 
   useEffect(() => {
     if (!hasPermission) {
       requestPermission();
     }
   }, [hasPermission, requestPermission]);
+
+  useEffect(() => {
+    const m = FILTERS[filter];
+    paint.setColorFilter(m ? Skia.ColorFilter.MakeMatrix([...m]) : null);
+  }, [filter, paint]);
 
   if (!hasPermission) {
     return (
@@ -63,9 +76,13 @@ export default function CameraScreen() {
   const takePhoto = async () => {
     try {
       const photoFile = await photoOutput.capturePhotoToFile({}, {});
-      setPhotoUri(photoFile.filePath);
+      const finalUri = await ApplyFilter(photoFile.filePath, FILTERS[filter]);
+      setPhotoUri(finalUri);
     } catch (error) {
       console.error("Error taking photo:", error);
+      setCameraError(
+        error instanceof Error ? error.message : "Could not save the photo.",
+      );
     }
   };
 
@@ -83,6 +100,7 @@ export default function CameraScreen() {
       <SkiaCamera
         style={StyleSheet.absoluteFill}
         device={device}
+        mirrorMode="auto"
         isActive={hasPermission && isFocused}
         pixelFormat="yuv"
         outputs={[photoOutput]}
@@ -94,7 +112,7 @@ export default function CameraScreen() {
           "worklet";
 
           render(({ frameTexture, canvas }) => {
-            canvas.drawImage(frameTexture, 0, 0);
+            canvas.drawImage(frameTexture, 0, 0, paint);
           });
 
           frame.dispose();
@@ -104,28 +122,49 @@ export default function CameraScreen() {
       <View
         style={[styles.bottomContainer, { paddingBottom: insets.bottom + 20 }]}
       >
-        <Pressable
-          style={styles.imagePreview}
-          onPress={() => router.push("/gallery")}
-        >
-          {photoUri && (
-            <Image
-              source={{
-                uri: photoUri.startsWith("file://")
-                  ? photoUri
-                  : `file://${photoUri}`,
-              }}
-              style={styles.image}
-              contentFit="cover"
-            />
-          )}
-        </Pressable>
-        <Pressable style={styles.captureBtn} onPress={takePhoto}>
-          <View style={styles.insideBtn} />
-        </Pressable>
-        <Pressable style={styles.flip} onPress={flipCamera}>
-          <SwitchCamera color="#fff" size={24} />
-        </Pressable>
+        <ScrollView horizontal contentContainerStyle={styles.filterRow}>
+          {(Object.keys(FILTERS) as FilterName[]).map((name) => (
+            <Pressable
+              key={name}
+              onPress={() => setFilter(name)}
+              style={[styles.chip, filter === name && styles.chipActive]}
+            >
+              <Text
+                style={[styles.chipText, filter === name && { color: "#000" }]}
+              >
+                {name}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <View style={styles.flexRow}>
+          <Pressable
+            style={styles.imagePreview}
+            onPress={() => {
+              if (photoUri) {
+                router.push({ pathname: "/editor", params: { photoUri } });
+              }
+            }}
+          >
+            {photoUri && (
+              <Image
+                source={{
+                  uri: photoUri.startsWith("file://")
+                    ? photoUri
+                    : `file://${photoUri}`,
+                }}
+                style={styles.image}
+                contentFit="cover"
+              />
+            )}
+          </Pressable>
+          <Pressable style={styles.captureBtn} onPress={takePhoto}>
+            <View style={styles.insideBtn} />
+          </Pressable>
+          <Pressable style={styles.flip} onPress={flipCamera}>
+            <SwitchCamera color="#fff" size={24} />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -136,7 +175,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#000",
+    backgroundColor: "pink",
   },
   text: {
     color: "#fff",
@@ -182,6 +221,11 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     position: "absolute",
     bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 20,
+  },
+  flexRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -221,5 +265,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#00000065",
     justifyContent: "center",
     alignItems: "center",
+  },
+  filterRow: {
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    gap: 12,
+    alignSelf: "center",
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "#00000070",
+  },
+  chipActive: { backgroundColor: theme.primary },
+  chipText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "capitalize",
+    textAlign: "center",
   },
 });
