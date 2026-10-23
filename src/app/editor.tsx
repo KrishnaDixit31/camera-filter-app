@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     color: "#000",
     fontSize: 14,
     fontWeight: "700",
-    marginTop: -3,
+    marginTop: -2,
   },
   imageContainer: {
     flex: 1,

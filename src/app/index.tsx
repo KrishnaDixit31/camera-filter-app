@@ -21,6 +21,7 @@ import { SwitchCamera } from "lucide-react-native";
 import { Skia } from "@shopify/react-native-skia";
 import FILTERS from "../constants/filters";
 import ApplyFilter from "../utils/applyFilter";
+import { createFile } from "../store/storeImage";
 
 type FilterName = keyof typeof FILTERS;
 
@@ -77,6 +78,7 @@ export default function CameraScreen() {
     try {
       const photoFile = await photoOutput.capturePhotoToFile({}, {});
       const finalUri = await ApplyFilter(photoFile.filePath, FILTERS[filter]);
+      createFile(finalUri);
       setPhotoUri(finalUri);
     } catch (error) {
       console.error("Error taking photo:", error);
@@ -137,12 +139,15 @@ export default function CameraScreen() {
             </Pressable>
           ))}
         </ScrollView>
+        <Pressable onPress={() => router.push("/gallery")}>
+          <Text>Gallery</Text>
+        </Pressable>
         <View style={styles.flexRow}>
           <Pressable
             style={styles.imagePreview}
             onPress={() => {
               if (photoUri) {
-                router.push({ pathname: "/editor", params: { photoUri } });
+                router.push({ pathname: "/preview", params: { photoUri } });
               }
             }}
           >
