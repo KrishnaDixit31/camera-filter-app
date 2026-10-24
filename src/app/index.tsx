@@ -17,7 +17,7 @@ import {
 import { SkiaCamera } from "react-native-vision-camera-skia";
 import { theme } from "../constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SwitchCamera } from "lucide-react-native";
+import { ImageOff, Images, SwitchCamera } from "lucide-react-native";
 import { Skia } from "@shopify/react-native-skia";
 import FILTERS from "../constants/filters";
 import ApplyFilter from "../utils/applyFilter";
@@ -124,24 +124,26 @@ export default function CameraScreen() {
       <View
         style={[styles.bottomContainer, { paddingBottom: insets.bottom + 20 }]}
       >
-        <ScrollView horizontal contentContainerStyle={styles.filterRow}>
-          {(Object.keys(FILTERS) as FilterName[]).map((name) => (
-            <Pressable
-              key={name}
-              onPress={() => setFilter(name)}
-              style={[styles.chip, filter === name && styles.chipActive]}
-            >
-              <Text
-                style={[styles.chipText, filter === name && { color: "#000" }]}
+        <View style={{ paddingHorizontal: 12 }}>
+          <ScrollView horizontal contentContainerStyle={styles.filterRow}>
+            {(Object.keys(FILTERS) as FilterName[]).map((name) => (
+              <Pressable
+                key={name}
+                onPress={() => setFilter(name)}
+                style={[styles.chip, filter === name && styles.chipActive]}
               >
-                {name}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-        <Pressable onPress={() => router.push("/gallery")}>
-          <Text>Gallery</Text>
-        </Pressable>
+                <Text
+                  style={[
+                    styles.chipText,
+                    filter === name && { color: "#000" },
+                  ]}
+                >
+                  {name}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
         <View style={styles.flexRow}>
           <Pressable
             style={styles.imagePreview}
@@ -151,7 +153,7 @@ export default function CameraScreen() {
               }
             }}
           >
-            {photoUri && (
+            {photoUri ? (
               <Image
                 source={{
                   uri: photoUri.startsWith("file://")
@@ -161,13 +163,21 @@ export default function CameraScreen() {
                 style={styles.image}
                 contentFit="cover"
               />
+            ) : (
+              <ImageOff color="#fff" />
             )}
           </Pressable>
           <Pressable style={styles.captureBtn} onPress={takePhoto}>
             <View style={styles.insideBtn} />
           </Pressable>
-          <Pressable style={styles.flip} onPress={flipCamera}>
+          {/* <Pressable style={styles.flip} onPress={flipCamera}>
             <SwitchCamera color="#fff" size={24} />
+          </Pressable> */}
+          <Pressable
+            style={styles.flip}
+            onPress={() => router.push("/gallery")}
+          >
+            <Images color="#fff" size={24} />
           </Pressable>
         </View>
       </View>
@@ -226,7 +236,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     position: "absolute",
     bottom: 0,
-    alignItems: "center",
     justifyContent: "center",
     gap: 20,
   },
@@ -239,6 +248,8 @@ const styles = StyleSheet.create({
   imagePreview: {
     width: 50,
     height: 50,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 12,
     backgroundColor: "#00000065",
     overflow: "hidden",
@@ -272,7 +283,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   filterRow: {
-    paddingHorizontal: 18,
     flexDirection: "row",
     gap: 12,
     alignSelf: "center",

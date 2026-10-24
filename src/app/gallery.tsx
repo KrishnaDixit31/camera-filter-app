@@ -50,8 +50,7 @@ const Gallery = () => {
         <Text style={styles.title}>Gallery</Text>
         <Text style={styles.total}>{list?.length} Images</Text>
       </View>
-      <Pressable
-        onPress={() => router.push("/preview")}
+      <View
         style={[styles.imageContainer, { paddingBottom: insets.bottom + 12 }]}
       >
         <FlatList
@@ -61,15 +60,25 @@ const Gallery = () => {
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.grid}
           renderItem={({ item }) => (
-            <Image
-              source={{ uri: item.uri }}
+            <Pressable
+              onPress={() =>
+                router.replace({
+                  pathname: "/preview",
+                  params: { photoUri: item.uri },
+                })
+              }
               style={styles.image}
-              contentFit="cover"
-            />
+            >
+              <Image
+                source={{ uri: item.uri }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+              />
+            </Pressable>
           )}
           ListEmptyComponent={() => emptyComponent()}
         />
-      </Pressable>
+      </View>
     </SafeAreaView>
   );
 };
@@ -95,7 +104,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   total: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "400",
     color: "#fff",
   },

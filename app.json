@@ -47,7 +47,9 @@
         {
           "photosPermission": "Allow camera-filter-app to access your photos.",
           "savePhotosPermission": "Allow camera-filter-app to save photos.",
-          "granularPermissions": ["photo"]
+          "granularPermissions": [
+            "photo"
+          ]
         }
       ],
       [
@@ -57,7 +59,8 @@
             "minSdkVersion": 26
           }
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

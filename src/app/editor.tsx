@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import {
   Pressable,
+  Alert,
   ScrollView,
   StyleSheet,
   type StyleProp,
@@ -24,6 +25,8 @@ import {
   useImage,
   type SkImage,
 } from "@shopify/react-native-skia";
+import { createFile } from "@/store/storeImage";
+import ApplyFilter from "../utils/applyFilter";
 
 type FilterName = keyof typeof FILTERS;
 
@@ -75,7 +78,27 @@ const EditorScreen = () => {
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<FilterName>("none");
   const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
+  const [isSaving, setIsSaving] = useState(false);
   const image = useImage(photoUri ?? null);
+
+  const handleSave = async () => {
+    if (!photoUri || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      const filteredPhotoUri = await ApplyFilter(photoUri, FILTERS[selected]);
+      createFile(filteredPhotoUri);
+      router.replace("/gallery");
+    } catch (error) {
+      console.error("Error saving filtered photo:", error);
+      Alert.alert(
+        "Save failed",
+        error instanceof Error ? error.message : "Could not save the photo.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -84,7 +107,11 @@ const EditorScreen = () => {
           <ChevronLeft color="#fff" />
         </Pressable>
         <Text style={styles.heading}>Editor</Text>
-        <Pressable style={styles.saveBtn}>
+        <Pressable
+          style={styles.saveBtn}
+          onPress={handleSave}
+          disabled={isSaving}
+        >
           <Text style={styles.btnText}>Done</Text>
         </Pressable>
       </View>
@@ -186,7 +213,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   btnText: {
-    color: "#000",
+    color: "#fff",
     fontSize: 14,
     fontWeight: "700",
     marginTop: -2,

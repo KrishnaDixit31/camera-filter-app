@@ -1,4 +1,7 @@
 import { File, Directory, Paths } from "expo-file-system";
+import * as MediaLibrary from "expo-media-library";
+import * as Sharing from "expo-sharing";
+import { Alert } from "react-native";
 
 const CameraDir = new Directory(Paths.document, "FilterCam");
 
@@ -22,6 +25,45 @@ export const readDir = () => {
     const fileList = CameraDir.list();
     return fileList;
   } catch (error) {
-    console.log(error);
+    alert(`Failed to read Directory: ${error}`);
+  }
+};
+
+export const saveImageToDevice = async (uri: string) => {
+  try {
+    const permission = await MediaLibrary.requestPermissionsAsync();
+
+    if (!permission.granted) {
+      alert("Gallery permission is required to save the image.");
+      return;
+    }
+
+    await MediaLibrary.Asset.create(uri);
+  } catch (error) {
+    alert(`Failed to save image: ${error}`);
+  }
+};
+
+export const shareImage = async (uri: string) => {
+  try {
+    if (!uri) {
+      Alert.alert("Error", "No image available to share.");
+      return;
+    }
+
+    const available = await Sharing.isAvailableAsync();
+
+    if (!available) {
+      Alert.alert("Not supported", "Sharing is not available on this device.");
+      return;
+    }
+
+    await Sharing.shareAsync(uri, {
+      mimeType: "image/jpeg",
+      dialogTitle: "Share your photo",
+      UTI: "public.jpeg",
+    });
+  } catch (error) {
+    Alert.alert("Error", `Could not share the image:  ${error}`);
   }
 };
