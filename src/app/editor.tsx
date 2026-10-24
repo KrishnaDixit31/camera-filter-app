@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import {
+  ActivityIndicator,
   Pressable,
   Alert,
   ScrollView,
@@ -103,12 +104,21 @@ const EditorScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Pressable style={styles.backArrow} onPress={() => router.back()}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.backArrow,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => router.back()}
+        >
           <ChevronLeft color="#fff" />
         </Pressable>
         <Text style={styles.heading}>Editor</Text>
         <Pressable
-          style={styles.saveBtn}
+          style={({ pressed }) => [
+            styles.saveBtn,
+            pressed && styles.pressed,
+          ]}
           onPress={handleSave}
           disabled={isSaving}
         >
@@ -145,7 +155,11 @@ const EditorScreen = () => {
               <View key={name}>
                 <Pressable
                   onPress={() => setSelected(name)}
-                  style={[styles.chip, selected === name && styles.chipActive]}
+                  style={({ pressed }) => [
+                    styles.chip,
+                    selected === name && styles.chipActive,
+                    pressed && styles.pressed,
+                  ]}
                 >
                   <View style={styles.chipImageContainer}>
                     <FilterPreview
@@ -171,6 +185,15 @@ const EditorScreen = () => {
           </ScrollView>
         </View>
       </View>
+      {isSaving ? (
+        <View
+          style={styles.loadingOverlay}
+          accessibilityRole="progressbar"
+          accessibilityLabel="Saving edited photo"
+        >
+          <ActivityIndicator color={theme.primary} size="large" />
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 };
@@ -181,6 +204,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.65)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+    elevation: 1,
   },
   headerContainer: {
     flexDirection: "row",
@@ -203,6 +238,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "#ffffff4c",
+  },
+  pressed: {
+    opacity: 0.7,
   },
   saveBtn: {
     paddingVertical: 8,

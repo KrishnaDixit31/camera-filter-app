@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { router, useIsFocused } from "expo-router";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,7 +18,13 @@ import {
 import { SkiaCamera } from "react-native-vision-camera-skia";
 import { theme } from "../constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ImageOff, Images, SwitchCamera } from "lucide-react-native";
+import {
+  ImageOff,
+  Images,
+  SwitchCamera,
+  Zap,
+  ZapOff,
+} from "lucide-react-native";
 import { Skia } from "@shopify/react-native-skia";
 import FILTERS from "../constants/filters";
 import ApplyFilter from "../utils/applyFilter";
@@ -31,10 +38,13 @@ export default function CameraScreen() {
   const [cameraPosition, setCameraPosition] = useState<"back" | "front">(
     "back",
   );
-  let device = useCameraDevice(cameraPosition);
+  const device = useCameraDevice(cameraPosition);
   const photoOutput = usePhotoOutput({ qualityPrioritization: "quality" });
+  const outputs = useMemo(() => [photoOutput], [photoOutput]);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [flashEnabled, setFlashEnabled] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<FilterName>("none");
   const paint = useMemo(() => Skia.Paint(), []);
@@ -75,8 +85,14 @@ export default function CameraScreen() {
   }
 
   const takePhoto = async () => {
+    if (isCapturing) return;
+
+    setIsCapturing(true);
     try {
-      const photoFile = await photoOutput.capturePhotoToFile({}, {});
+      const photoFile = await photoOutput.capturePhotoToFile(
+        { flashMode: flashEnabled && device.hasFlash ? "on" : "off" },
+        {},
+      );
       const finalUri = await ApplyFilter(photoFile.filePath, FILTERS[filter]);
       createFile(finalUri);
       setPhotoUri(finalUri);
@@ -85,6 +101,8 @@ export default function CameraScreen() {
       setCameraError(
         error instanceof Error ? error.message : "Could not save the photo.",
       );
+    } finally {
+      setIsCapturing(false);
     }
   };
 
@@ -105,7 +123,7 @@ export default function CameraScreen() {
         mirrorMode="auto"
         isActive={hasPermission && isFocused}
         pixelFormat="yuv"
-        outputs={[photoOutput]}
+        outputs={outputs}
         onError={(error) => {
           console.error("Camera runtime error:", error);
           setCameraError(error.message);
@@ -121,6 +139,29 @@ export default function CameraScreen() {
         }}
       />
 
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Flash ${flashEnabled ? "on" : "off"}`}
+        accessibilityState={{
+          disabled: !device.hasFlash,
+          selected: flashEnabled,
+        }}
+        disabled={!device.hasFlash}
+        style={({ pressed }) => [
+          styles.flash,
+          !device.hasFlash && styles.flashDisabled,
+          flashEnabled && styles.flashEnabled,
+          pressed && styles.pressed,
+        ]}
+        onPress={() => setFlashEnabled((enabled) => !enabled)}
+      >
+        {flashEnabled ? (
+          <Zap color="#fff" size={22} />
+        ) : (
+          <ZapOff color="#fff" size={22} />
+        )}
+      </Pressable>
+
       <View
         style={[styles.bottomContainer, { paddingBottom: insets.bottom + 20 }]}
       >
@@ -130,7 +171,11 @@ export default function CameraScreen() {
               <Pressable
                 key={name}
                 onPress={() => setFilter(name)}
-                style={[styles.chip, filter === name && styles.chipActive]}
+                style={({ pressed }) => [
+                  styles.chip,
+                  filter === name && styles.chipActive,
+                  pressed && styles.pressed,
+                ]}
               >
                 <Text
                   style={[
@@ -146,7 +191,10 @@ export default function CameraScreen() {
         </View>
         <View style={styles.flexRow}>
           <Pressable
-            style={styles.imagePreview}
+            style={({ pressed }) => [
+              styles.imagePreview,
+              pressed && styles.pressed,
+            ]}
             onPress={() => {
               if (photoUri) {
                 router.push({ pathname: "/preview", params: { photoUri } });
@@ -167,20 +215,36 @@ export default function CameraScreen() {
               <ImageOff color="#fff" />
             )}
           </Pressable>
-          <Pressable style={styles.captureBtn} onPress={takePhoto}>
-            <View style={styles.insideBtn} />
-          </Pressable>
-          {/* <Pressable style={styles.flip} onPress={flipCamera}>
-            <SwitchCamera color="#fff" size={24} />
-          </Pressable> */}
           <Pressable
-            style={styles.flip}
+            style={({ pressed }) => [
+              styles.captureBtn,
+              pressed && styles.capturePressed,
+            ]}
+            onPress={takePhoto}
+            disabled={isCapturing}
+            accessibilityState={{ busy: isCapturing, disabled: isCapturing }}
+          >
+            {isCapturing ? (
+              <ActivityIndicator color={theme.primary} size="large" />
+            ) : (
+              <View style={styles.insideBtn} />
+            )}
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.gallery, pressed && styles.pressed]}
             onPress={() => router.push("/gallery")}
           >
             <Images color="#fff" size={24} />
           </Pressable>
         </View>
       </View>
+
+      <Pressable
+        style={({ pressed }) => [styles.flip, pressed && styles.pressed]}
+        onPress={flipCamera}
+      >
+        <SwitchCamera color="#fff" size={24} />
+      </Pressable>
     </View>
   );
 }
@@ -190,7 +254,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "pink",
+    backgroundColor: "#000",
   },
   text: {
     color: "#fff",
@@ -268,19 +332,53 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "transparent",
   },
+  capturePressed: {
+    backgroundColor: "#ffffff40",
+  },
+  pressed: {
+    opacity: 0.7,
+  },
   insideBtn: {
     width: 60,
     height: 60,
     borderRadius: 30,
     backgroundColor: theme.primary,
   },
-  flip: {
+  gallery: {
     width: 50,
     height: 50,
     borderRadius: 25,
     backgroundColor: "#00000065",
     justifyContent: "center",
     alignItems: "center",
+  },
+  flip: {
+    position: "absolute",
+    top: 40,
+    right: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#00000065",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  flash: {
+    position: "absolute",
+    top: 40,
+    left: 20,
+    paddingHorizontal: 14,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#00000065",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  flashEnabled: {
+    backgroundColor: theme.primary,
+  },
+  flashDisabled: {
+    opacity: 0.5,
   },
   filterRow: {
     flexDirection: "row",

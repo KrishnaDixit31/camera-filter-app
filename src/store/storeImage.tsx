@@ -1,6 +1,6 @@
 import { File, Directory, Paths } from "expo-file-system";
 import * as MediaLibrary from "expo-media-library";
-import * as Sharing from "expo-sharing";
+// import * as Sharing from "expo-sharing";
 import { Alert } from "react-native";
 
 const CameraDir = new Directory(Paths.document, "FilterCam");

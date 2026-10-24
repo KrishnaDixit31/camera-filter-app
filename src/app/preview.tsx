@@ -19,7 +19,13 @@ const PreviewScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Pressable style={styles.backArrow} onPress={() => router.back()}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.backArrow,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => router.back()}
+        >
           <ChevronLeft color="#fff" />
         </Pressable>
         <Text style={styles.heading}>Preview</Text>
@@ -42,7 +48,10 @@ const PreviewScreen = () => {
       </View>
       <View style={styles.btnContainer}>
         <Pressable
-          style={styles.saveGallery}
+          style={({ pressed }) => [
+            styles.saveGallery,
+            pressed && styles.pressed,
+          ]}
           onPress={() => {
             if (photoUri) saveImageToDevice(photoUri);
           }}
@@ -52,7 +61,10 @@ const PreviewScreen = () => {
         </Pressable>
         <View style={styles.btnRow}>
           <Pressable
-            style={styles.commonBtn}
+            style={({ pressed }) => [
+              styles.commonBtn,
+              pressed && styles.pressed,
+            ]}
             onPress={() => {
               if (photoUri) shareImage(photoUri);
             }}
@@ -61,7 +73,10 @@ const PreviewScreen = () => {
             <Text style={styles.btnText}>Share</Text>
           </Pressable>
           <Pressable
-            style={styles.commonBtn}
+            style={({ pressed }) => [
+              styles.commonBtn,
+              pressed && styles.pressed,
+            ]}
             onPress={() =>
               router.replace({
                 pathname: "/editor",
@@ -105,6 +120,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "#ffffff4c",
+  },
+  pressed: {
+    opacity: 0.7,
   },
   imageContainer: {
     flex: 1,

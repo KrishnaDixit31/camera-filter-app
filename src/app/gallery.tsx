@@ -37,7 +37,10 @@ const Gallery = () => {
         <Text style={styles.text}>
           No images yet. Your captured photos will appear here.
         </Text>
-        <Pressable onPress={() => router.replace("/")} style={styles.btn}>
+        <Pressable
+          onPress={() => router.replace("/")}
+          style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
+        >
           <Text style={styles.btnText}>Got ot Camera</Text>
         </Pressable>
       </View>
@@ -67,7 +70,10 @@ const Gallery = () => {
                   params: { photoUri: item.uri },
                 })
               }
-              style={styles.image}
+              style={({ pressed }) => [
+                styles.image,
+                pressed && styles.pressed,
+              ]}
             >
               <Image
                 source={{ uri: item.uri }}
@@ -122,6 +128,9 @@ const styles = StyleSheet.create({
   image: {
     flex: 1,
     aspectRatio: 1,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   icon: {
     marginBottom: 16,
