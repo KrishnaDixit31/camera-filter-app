@@ -5,7 +5,13 @@ import {
   Share,
   SquarePen,
 } from "lucide-react-native";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import {
+  ActivityIndicator,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../constants/theme";
 import { useState } from "react";
@@ -15,6 +21,18 @@ import { saveImageToDevice, shareImage } from "../store/storeImage";
 const PreviewScreen = () => {
   const { photoUri } = useLocalSearchParams<{ photoUri?: string }>();
   const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!photoUri || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      await saveImageToDevice(photoUri);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -52,12 +70,22 @@ const PreviewScreen = () => {
             styles.saveGallery,
             pressed && styles.pressed,
           ]}
-          onPress={() => {
-            if (photoUri) saveImageToDevice(photoUri);
+          onPress={handleSave}
+          disabled={isSaving || !photoUri}
+          accessibilityRole="button"
+          accessibilityState={{
+            busy: isSaving,
+            disabled: isSaving || !photoUri,
           }}
         >
-          <ArrowDownToLine color="#fff" size={20} />
-          <Text style={styles.btnText}>Save to Device</Text>
+          {isSaving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <ArrowDownToLine color="#fff" size={20} />
+          )}
+          <Text style={styles.btnText}>
+            {isSaving ? "Saving..." : "Save to Device"}
+          </Text>
         </Pressable>
         <View style={styles.btnRow}>
           <Pressable

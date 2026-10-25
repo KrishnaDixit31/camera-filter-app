@@ -18,13 +18,7 @@ import {
 import { SkiaCamera } from "react-native-vision-camera-skia";
 import { theme } from "../constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  ImageOff,
-  Images,
-  SwitchCamera,
-  Zap,
-  ZapOff,
-} from "lucide-react-native";
+import { ImageOff, Images, Zap, ZapOff } from "lucide-react-native";
 import { Skia } from "@shopify/react-native-skia";
 import FILTERS from "../constants/filters";
 import ApplyFilter from "../utils/applyFilter";
@@ -35,16 +29,14 @@ type FilterName = keyof typeof FILTERS;
 export default function CameraScreen() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const isFocused = useIsFocused();
-  const [cameraPosition, setCameraPosition] = useState<"back" | "front">(
-    "back",
-  );
-  const device = useCameraDevice(cameraPosition);
+  const device = useCameraDevice("back");
   const photoOutput = usePhotoOutput({ qualityPrioritization: "quality" });
   const outputs = useMemo(() => [photoOutput], [photoOutput]);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [hasScreenLayout, setHasScreenLayout] = useState(false);
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<FilterName>("none");
   const paint = useMemo(() => Skia.Paint(), []);
@@ -106,38 +98,36 @@ export default function CameraScreen() {
     }
   };
 
-  const flipCamera = () => {
-    setCameraPosition((pos) => (pos === "back" ? "front" : "back"));
-  };
-
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={() => setHasScreenLayout(true)}>
       {cameraError ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Camera Error: {cameraError}</Text>
         </View>
       ) : null}
-      <SkiaCamera
-        style={StyleSheet.absoluteFill}
-        device={device}
-        mirrorMode="auto"
-        isActive={hasPermission && isFocused}
-        pixelFormat="yuv"
-        outputs={outputs}
-        onError={(error) => {
-          console.error("Camera runtime error:", error);
-          setCameraError(error.message);
-        }}
-        onFrame={(frame, render) => {
-          "worklet";
+      {hasScreenLayout ? (
+        <SkiaCamera
+          style={StyleSheet.absoluteFill}
+          device={device}
+          mirrorMode="auto"
+          isActive={hasPermission && isFocused}
+          pixelFormat="yuv"
+          outputs={outputs}
+          onError={(error) => {
+            console.error("Camera runtime error:", error);
+            setCameraError(error.message);
+          }}
+          onFrame={(frame, render) => {
+            "worklet";
 
-          render(({ frameTexture, canvas }) => {
-            canvas.drawImage(frameTexture, 0, 0, paint);
-          });
+            render(({ frameTexture, canvas }) => {
+              canvas.drawImage(frameTexture, 0, 0, paint);
+            });
 
-          frame.dispose();
-        }}
-      />
+            frame.dispose();
+          }}
+        />
+      ) : null}
 
       <Pressable
         accessibilityRole="button"
@@ -190,31 +180,36 @@ export default function CameraScreen() {
           </ScrollView>
         </View>
         <View style={styles.flexRow}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.imagePreview,
-              pressed && styles.pressed,
-            ]}
-            onPress={() => {
-              if (photoUri) {
-                router.push({ pathname: "/preview", params: { photoUri } });
-              }
-            }}
-          >
-            {photoUri ? (
-              <Image
-                source={{
-                  uri: photoUri.startsWith("file://")
-                    ? photoUri
-                    : `file://${photoUri}`,
-                }}
-                style={styles.image}
-                contentFit="cover"
-              />
-            ) : (
-              <ImageOff color="#fff" />
-            )}
-          </Pressable>
+          <View style={styles.footerAction}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Recent photo"
+              style={({ pressed }) => [
+                styles.imagePreview,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => {
+                if (photoUri) {
+                  router.push({ pathname: "/preview", params: { photoUri } });
+                }
+              }}
+            >
+              {photoUri ? (
+                <Image
+                  source={{
+                    uri: photoUri.startsWith("file://")
+                      ? photoUri
+                      : `file://${photoUri}`,
+                  }}
+                  style={styles.image}
+                  contentFit="cover"
+                />
+              ) : (
+                <ImageOff color="#fff" />
+              )}
+            </Pressable>
+            <Text style={styles.footerActionText}>Recent</Text>
+          </View>
           <Pressable
             style={({ pressed }) => [
               styles.captureBtn,
@@ -230,21 +225,19 @@ export default function CameraScreen() {
               <View style={styles.insideBtn} />
             )}
           </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.gallery, pressed && styles.pressed]}
-            onPress={() => router.push("/gallery")}
-          >
-            <Images color="#fff" size={24} />
-          </Pressable>
+          <View style={styles.footerAction}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Gallery"
+              style={({ pressed }) => [styles.gallery, pressed && styles.pressed]}
+              onPress={() => router.push("/gallery")}
+            >
+              <Images color="#fff" size={24} />
+            </Pressable>
+            <Text style={styles.footerActionText}>Gallery</Text>
+          </View>
         </View>
       </View>
-
-      <Pressable
-        style={({ pressed }) => [styles.flip, pressed && styles.pressed]}
-        onPress={flipCamera}
-      >
-        <SwitchCamera color="#fff" size={24} />
-      </Pressable>
     </View>
   );
 }
@@ -307,7 +300,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 52,
+    gap: 32,
+  },
+  footerAction: {
+    width: 70,
+    alignItems: "center",
+    gap: 4,
+  },
+  footerActionText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
   },
   imagePreview: {
     width: 50,
@@ -345,17 +348,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.primary,
   },
   gallery: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#00000065",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  flip: {
-    position: "absolute",
-    top: 40,
-    right: 20,
     width: 50,
     height: 50,
     borderRadius: 25,

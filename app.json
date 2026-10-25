@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "FilterCam",
-    "slug": "FilterCam",
+    "slug": "camera-filter-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "FilterCam",
+    "scheme": "filtercam",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
@@ -19,7 +19,11 @@
         "foregroundImage": "./assets/images/icon.png"
       },
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES"
       ],
       "predictiveBackGestureEnabled": false,
       "package": "com.krishnadixit.camerafilterapp"
@@ -34,7 +38,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/icon.png",
-          "imageWidth": 250,
+          "imageWidth": 300,
           "resizeMode": "contain",
           "backgroundColor": "#0B0B0B",
           "dark": {
@@ -71,6 +75,7 @@
       "eas": {
         "projectId": "72bcc9ed-15bb-4661-9f2c-8c5966a8630f"
       }
-    }
+    },
+    "owner": "krishnadixit"
   }
 }
